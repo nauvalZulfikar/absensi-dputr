@@ -106,6 +106,18 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Aktor yang dibatasi ke divisinya sendiri (Pengawas/user_admin) — dipakai
+     * untuk read-scoping. Full admin tidak; staff biasa tidak (di luar #32).
+     */
+    public function isDivisionScoped(): bool
+    {
+        return ! $this->isFullAdmin()
+            && $this->roles()
+                ->whereHas('role', fn ($q) => $q->where('name', 'user_admin'))
+                ->exists();
+    }
+
+    /**
      * Boleh menulis (buat/ubah/hapus) resource di divisi ini?
      * - Full admin: selalu boleh.
      * - user_admin: hanya divisi yang ditugaskan padanya (user_have_division).

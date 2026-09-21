@@ -45,6 +45,19 @@ class Fase7Test extends TestCase
         return $u;
     }
 
+    private function insertAttendance(int $id, int $projectId, int $userId, string $type = 'clockin'): void
+    {
+        \DB::table('medias')->insertOrIgnore([
+            ['id' => 1, 'url' => 'http://x/1.jpg', 'type' => 'attendances'],
+        ]);
+        \DB::table('attendances')->insert([
+            'id' => $id, 'userId' => $userId, 'projectId' => $projectId,
+            'mediaAttendaceId' => 1, 'mediaOfWorkId' => 1,
+            'latitude' => '-6.9', 'longtitude' => '107.6',
+            'date' => '2026-02-01', 'time' => '08:00:00', 'type' => $type,
+        ]);
+    }
+
     private function makeProject(int $id, int $devisionId): void
     {
         \DB::table('projects')->insert([
@@ -305,5 +318,48 @@ class Fase7Test extends TestCase
         $add = $this->withHeader('Authorization', "Bearer $pengTok")
             ->postJson('/api/shift/add-user', ['shift_id' => $sid, 'user_ids' => [$pengawas->id], 'project_ids' => [90]]);
         $this->assertSame(403, $add->status());
+    }
+
+    // ---- attendance read-scoping (#32 confidentiality) ----
+
+    /** user_admin cuma lihat attendance divisinya di index, walau admin_mode=1. */
+    public function test_attendance_index_scoped_for_user_admin()
+    {
+        $this->seedRoles();
+        $admin = $this->makeUser('admin@test', 'admin');
+        $pengawas = $this->makeUser('peng1@test', 'user_admin', 1);
+        $this->makeProject(100, 1); // own
+        $this->makeProject(101, 2); // foreign
+        $this->insertAttendance(1, 100, $pengawas->id);
+        $this->insertAttendance(2, 101, $admin->id);
+
+        $pengTok = auth()->login($pengawas);
+        $peng = $this->withHeader('Authorization', "Bearer $pengTok")
+            ->getJson('/api/attendance?admin_mode=1');
+        $this->assertSame(200, $peng->status());
+        $this->assertSame(1, $peng->json('meta.total'), 'pengawas hanya lihat divisinya');
+
+        $adminTok = auth()->login($admin);
+        $adm = $this->withHeader('Authorization', "Bearer $adminTok")
+            ->getJson('/api/attendance?admin_mode=1');
+        $this->assertSame(2, $adm->json('meta.total'), 'full admin lihat semua divisi');
+    }
+
+    /** summary user_admin cuma ngitung attendance divisinya. */
+    public function test_attendance_summary_scoped_for_user_admin()
+    {
+        $this->seedRoles();
+        $pengawas = $this->makeUser('peng1@test', 'user_admin', 1);
+        $other = $this->makeUser('staff@test', 'user');
+        $this->makeProject(110, 1); // own
+        $this->makeProject(111, 2); // foreign
+        $this->insertAttendance(1, 110, $pengawas->id);
+        $this->insertAttendance(2, 111, $other->id);
+
+        $pengTok = auth()->login($pengawas);
+        $res = $this->withHeader('Authorization', "Bearer $pengTok")
+            ->getJson('/api/attendance/summary?admin_mode=1');
+        $this->assertSame(200, $res->status());
+        $this->assertSame(1, $res->json('data.all'), 'summary hanya ngitung divisi sendiri');
     }
 }

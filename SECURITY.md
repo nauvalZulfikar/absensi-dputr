@@ -19,7 +19,7 @@ Severity + remediation status. Each row links to its tracking issue.
 | 8 | Medium | reCAPTCHA not enforced server-side + login 500 on missing token | ✅ Fixed (500 + toggle) | #29 |
 | 9 | Medium | Login user enumeration | ✅ Fixed | #30 |
 | 10 | Medium | Error envelopes return HTTP 200; unauth `auth:api` → 500 not 401 | 🟡 Partial | #31 |
-| 11 | Medium | Horizontal escalation: `user_admin` can write across any division | 🟢 Fixed (all writes; reads pending) | #32 |
+| 11 | Medium | Horizontal escalation: `user_admin` acts/reads across any division | ✅ Fixed | #32 |
 
 ## Fixes applied in this branch
 
@@ -130,6 +130,20 @@ is deliberately **not** done here to avoid breaking the client.
 - **All #32 *write* paths are now scoped.** Remaining: attendance **read**
   list-scoping — a separate confidentiality fix (filter queries, not a 403 gate).
 
+**Fase 8e — attendance read-scoping (closes #32)**
+- The list endpoints already accepted a client `division_ids` filter, but a
+  Pengawas could just omit/spoof it and read every division's attendance (incl.
+  GPS). New reusable `Attendance::scopeVisibleTo($user)` forces the result to the
+  actor's own divisions (`whereHas('project', devisionId ∈ user's divisions)`)
+  whenever `User::isDivisionScoped()` (a user_admin who isn't a full admin) —
+  full admins and plain staff are untouched, so no FE regression.
+- Applied to `index`, `Export`, and all five `summary` count queries.
+  `attendanceLogs` was already self-scoped to `userId = caller`, so it needed
+  nothing.
+- Tests in `Fase7Test` (index total = own-division only / full admin sees all;
+  summary `all` counts only own division).
+- **#32 fully closed — writes and reads both scoped.**
+
 ## Verification
 
 - Backend suite green: `php artisan test` (all feature tests, incl. `RoleGateTest`,
@@ -149,7 +163,7 @@ is deliberately **not** done here to avoid breaking the client.
 - [x] #32 scoping on devision update/destroy + user-division assign.
 - [x] #32 scoping on progres CRUD + user-project assign (project-keyed).
 - [x] #32 scoping on shift CRUD + add/delete-user (pivot-resolved). All writes done.
-- [ ] Attendance read-scoping (confidentiality: filter list queries by division).
+- [x] Attendance read-scoping — index/summary/Export forced to actor's divisions. #32 closed.
 - [ ] The production DB dump containing employee PII must never be committed or shared.
 
 ## Reporting

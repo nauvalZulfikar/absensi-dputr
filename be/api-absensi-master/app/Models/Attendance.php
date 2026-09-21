@@ -48,6 +48,23 @@ class Attendance extends Model
         return $this->belongsTo(Shift::class, 'shift_id');
     }
 
+    /**
+     * Batasi hasil ke divisi yang boleh dilihat aktor (#32 read-scoping).
+     * user_admin (Pengawas): hanya attendance di project divisinya, apa pun
+     * division_ids yang dikirim klien. Full admin & staff: tak diubah (perilaku
+     * lama; staff sudah self-scoped userId di endpoint terkait).
+     */
+    public function scopeVisibleTo($query, $user)
+    {
+        if (! $user || ! $user->isDivisionScoped()) {
+            return $query;
+        }
+        $divIds = $user->divisions()->pluck('devision_id')->all();
+        return $query->whereHas('project', function (Builder $subQuery) use ($divIds) {
+            $subQuery->whereIn('devisionId', $divIds);
+        });
+    }
+
     public function scopeWhereDivision($query, $divisionIds)
     {
         if ($query && $divisionIds) {
