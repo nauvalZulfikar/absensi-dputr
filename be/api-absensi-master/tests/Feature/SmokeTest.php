@@ -64,20 +64,20 @@ class SmokeTest extends TestCase
             'attendance row forged for another user without logging in');
     }
 
-    /** F-02: /api/migrate is public */
-    public function test_migrate_endpoint_is_public()
+    /** F-02 (fixed): /api/migrate route removed entirely (Fase 0). */
+    public function test_migrate_endpoint_is_gone()
     {
         $res = $this->getJson('/api/migrate');
-        fwrite(STDERR, "[F-02] GET /api/migrate unauthenticated -> HTTP {$res->status()} {$res->getContent()}\n");
-        $this->assertSame(200, $res->status());
+        fwrite(STDERR, "[F-02] GET /api/migrate -> HTTP {$res->status()}\n");
+        $this->assertSame(404, $res->status());
     }
 
-    /** F-03: /api/export is public; admin_mode=1 dumps everyone's rows */
-    public function test_export_endpoint_is_public()
+    /** F-03 (fixed): /api/export now requires authentication (Fase 1). */
+    public function test_export_endpoint_requires_auth()
     {
-        $res = $this->get('/api/export?admin_mode=1');
+        $res = $this->getJson('/api/export?admin_mode=1');
         fwrite(STDERR, "[F-03] GET /api/export?admin_mode=1 unauthenticated -> HTTP {$res->status()}\n");
-        $this->assertNotSame(401, $res->status());
+        $this->assertSame(401, $res->status());
     }
 
     /** F-04: login with no g-recaptcha-response crashes before validation */

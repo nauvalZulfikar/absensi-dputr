@@ -25,7 +25,7 @@
                                 </span>
                             </div>
                             <div class="mt-2 text-sm">
-                                <span class="font-bold">ID : </span> <span>{{ user?.profile_nik ?? '-' }}</span>
+                                <span class="font-bold">ID : </span> <span>{{ maskNik(user?.profile_nik) }}</span>
                             </div>
                             <div class="mt-2 text-sm">
                                 <span class="font-bold">Divisi </span>
@@ -119,6 +119,7 @@ import projectApi from '@/helpers/projects';
 import { useRouter } from 'vue-router';
 import { userDummyImage } from "@/constant/static";
 import { getDataShifts } from '@/helpers/shift';
+import { maskNik } from '@/constant/helpers';
 
 const userStore = useUserStore();
 

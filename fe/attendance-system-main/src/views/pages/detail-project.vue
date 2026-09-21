@@ -38,7 +38,7 @@
 					<div>
 						<div>
 							<span class="font-bold text-[12px] lg:text-lg">
-								Rp {{ project?.cost }}
+								Rp {{ formatRupiah(project?.cost) }}
 							</span>
 						</div>
 						<div class="flex justify-end">
@@ -137,7 +137,7 @@ import DropZoneVue from '@/components/Fileinput/DropZone.vue';
 import { useRoute, useRouter } from 'vue-router';
 import projectApi from '@/helpers/projects';
 import VueBadge from '@/components/Badge';
-import {totalDate} from '@/constant/helpers';
+import {totalDate, formatRupiah} from '@/constant/helpers';
 
 const store = useThemeSettingsStore();
 

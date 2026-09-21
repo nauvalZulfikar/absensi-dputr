@@ -77,7 +77,8 @@ class ProjectController extends Controller
             $data->address = $request->address;
             $data->documentId = $request->documentId;
             $data->latitude = $request->latitude;
-            $data->longtitude = $request->longitude;
+            // Terima dua ejaan: 'longitude' (benar) & 'longtitude' (typo kolom/FE)
+            $data->longtitude = $request->input('longitude', $request->input('longtitude'));
             $data->description = $request->description;
             $data->save();
             return Json::response($data);
@@ -138,7 +139,8 @@ class ProjectController extends Controller
             $data->rowStatus = $request->input('rowStatus', $data->rowStatus);
             $data->address = $request->input('address', $data->address);
             $data->latitude = $request->input('latitude', $data->latitude);
-            $data->longtitude = $request->input('longtitude', $data->longtitude);
+            // Terima dua ejaan: 'longitude' (benar) & 'longtitude' (typo kolom/FE)
+            $data->longtitude = $request->input('longitude', $request->input('longtitude', $data->longtitude));
             $data->description = $request->input('description', $data->description);
             $data->physical_process = $request->input("physical_process", $data->physical_process);
             $data->disbursement_of_funds = $request->input("disbursement_of_funds", $data->disbursement_of_funds);

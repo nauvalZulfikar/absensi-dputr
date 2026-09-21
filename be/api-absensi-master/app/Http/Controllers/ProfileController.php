@@ -49,10 +49,18 @@ class ProfileController extends Controller
         }
     }
 
-    public function update(Request $request)
+    public function update(Request $request, $id = null)
     {
         try {
-            $data = Profile::where('userId', auth()->user()->id)->first();
+            // {id} cuma dihormati kalau pemanggil admin/user_admin; selain itu
+            // dipaksa ke profil sendiri (nutup silent no-op + akses lintas-user).
+            $isAdmin = auth()->user()->roles()
+                ->whereHas('role', fn ($q) => $q->whereIn('name', ['admin', 'user_admin']))
+                ->exists();
+            $targetUserId = ($id && $isAdmin) ? $id : auth()->user()->id;
+
+            $data = Profile::where('userId', $targetUserId)->firstOrFail();
+            $data->name = $request->input('name', $data->name);
             $data->mediaId = $request->input('media_id', $data->mediaId);
             $data->jabatan = $request->input('jabatan', $data->jabatan);
             $data->gender = $request->input('gender', $data->gender);

@@ -135,10 +135,13 @@ class AttendacesController extends Controller
             $shift = Shift::findOrFail($request->shiftId);
 
             if ($shift) {
+                // Bandingkan JAM-ke-JAM. Bug lama: $data->date (datetime penuh) vs
+                // $shift->timeIn (kolom TIME) → string compare selalu 'late'.
+                $clock = Carbon::parse($data->time ?: Carbon::now())->format('H:i:s');
                 if ($data->type === 'clockin') {
-                    $data->status = ($data->date > $shift->timeIn) ? 'late' : 'on-time';
+                    $data->status = ($clock > Carbon::parse($shift->timeIn)->format('H:i:s')) ? 'late' : 'on-time';
                 } else if ($data->type === 'clockout') {
-                    $data->status = ($data->date < $shift->timeOut) ? 'too-early' : 'on-time';
+                    $data->status = ($clock < Carbon::parse($shift->timeOut)->format('H:i:s')) ? 'too-early' : 'on-time';
                 }
             }
 

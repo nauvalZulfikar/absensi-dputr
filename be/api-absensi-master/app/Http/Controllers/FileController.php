@@ -26,8 +26,8 @@ class FileController extends Controller
 
     public function downloadExcel($file_path)
     {
-        // Periksa apakah file ada
-        $tempStoragePath = 'attendances/' . $file_path;
+        // basename() buang komponen direktori apa pun — defense-in-depth anti path-traversal
+        $tempStoragePath = 'attendances/' . basename($file_path);
         if (Storage::exists($tempStoragePath)) {
             // Jika file ada, lakukan proses unduh
             return Storage::download($tempStoragePath);

@@ -34,7 +34,7 @@
         </Select>
 
         <span class="text-sm text-slate-500 inline-block ltr:ml-2 rtl:mr-2">
-          of {{ perPage }} entries</span
+          of {{ total }} entries</span
         >
       </div>
     </div>

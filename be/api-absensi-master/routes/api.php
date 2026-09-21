@@ -15,7 +15,6 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserHaveDivisionController;
 use App\Http\Controllers\UserHaveProjectController;
-use Illuminate\Support\Facades\Artisan;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,51 +64,53 @@ Route::group([
     // })->middleware(['auth:api']);
 });
 
-Route::prefix('user')->middleware('auth:api')->group(function () {
-    Route::post('/all', [UserController::class, 'index']);
-    Route::post('/', [UserController::class, 'store']);
-    Route::post('/selected', [UserController::class, 'userSelectionList']);
-    Route::get('summary', [UserController::class, 'summary']);
-    Route::post('profile', [UserController::class, 'updateProfile']);
+// Gate admin: role admin/user_admin. Route self-service (profile sendiri,
+// list/show yang dipakai user biasa) tetap auth:api aja.
+$adminOnly = 'role:admin,user_admin';
+
+Route::prefix('user')->middleware('auth:api')->group(function () use ($adminOnly) {
+    Route::post('/all', [UserController::class, 'index'])->middleware($adminOnly);
+    Route::post('/', [UserController::class, 'store'])->middleware($adminOnly);
+    Route::post('/selected', [UserController::class, 'userSelectionList'])->middleware($adminOnly);
+    Route::get('summary', [UserController::class, 'summary'])->middleware($adminOnly);
+    Route::post('profile', [UserController::class, 'updateProfile']); // ganti profil/password sendiri
 });
 
-Route::prefix('devision')->middleware('auth:api')->group(function () {
+Route::prefix('devision')->middleware('auth:api')->group(function () use ($adminOnly) {
     Route::post('/', [DevisionController::class, 'index']);
-    Route::post('/store', [DevisionController::class, 'store']);
     Route::get('/show/{id}', [DevisionController::class, 'show']);
-    Route::put('/update/{id}', [DevisionController::class, 'update']);
-    Route::post('/destroy/{id}', [DevisionController::class, 'destroy']);
-    // Route::apiResource('', DevisionController::class);
+    Route::post('/store', [DevisionController::class, 'store'])->middleware($adminOnly);
+    Route::put('/update/{id}', [DevisionController::class, 'update'])->middleware($adminOnly);
+    Route::post('/destroy/{id}', [DevisionController::class, 'destroy'])->middleware($adminOnly);
 });
 
-Route::prefix('project')->middleware('auth:api')->group(function () {
+Route::prefix('project')->middleware('auth:api')->group(function () use ($adminOnly) {
     Route::post('/', [ProjectController::class, 'index']);
-    Route::post('/store', [ProjectController::class, 'store']);
     Route::get('/show/{id}', [ProjectController::class, 'show']);
-    Route::put('/update/{id}', [ProjectController::class, 'update']);
-    Route::post('/destroy/{id}', [ProjectController::class, 'destroy']);
-
     Route::get('/global', [ProjectController::class, 'global_function']);
     Route::get('/detail-project', [ProjectController::class, 'detailProject']);
+    Route::post('/store', [ProjectController::class, 'store'])->middleware($adminOnly);
+    Route::put('/update/{id}', [ProjectController::class, 'update'])->middleware($adminOnly);
+    Route::post('/destroy/{id}', [ProjectController::class, 'destroy'])->middleware($adminOnly);
 });
 
-Route::prefix('progres')->middleware('auth:api')->group(function () {
+Route::prefix('progres')->middleware('auth:api')->group(function () use ($adminOnly) {
     Route::post('/', [ProgressController::class, 'index']);
-    Route::post('/store', [ProgressController::class, 'store']);
     Route::get('/show/{id}', [ProgressController::class, 'show']);
-    Route::put('/update/{id}', [ProgressController::class, 'update']);
-    Route::post('/destroy/{id}', [ProgressController::class, 'destroy']);
+    Route::post('/store', [ProgressController::class, 'store'])->middleware($adminOnly);
+    Route::put('/update/{id}', [ProgressController::class, 'update'])->middleware($adminOnly);
+    Route::post('/destroy/{id}', [ProgressController::class, 'destroy'])->middleware($adminOnly);
 });
 
-Route::prefix('shift')->middleware('auth:api')->group(function () {
+Route::prefix('shift')->middleware('auth:api')->group(function () use ($adminOnly) {
     Route::post('/', [ShiftController::class, 'index']);
-    Route::post('/store', [ShiftController::class, 'store']);
     Route::get('/show/{id}', [ShiftController::class, 'show']);
-    Route::put('/update/{id}', [ShiftController::class, 'update']);
-    Route::delete('/destroy/{id}', [ShiftController::class, 'destroy']);
     Route::post('/show2', [ShiftController::class, 'show2']);
-    Route::post('/add-user', [ShiftController::class, 'addUserShift']);
-    Route::post('/delete-user', [ShiftController::class, 'deleteShiftUser']);
+    Route::post('/store', [ShiftController::class, 'store'])->middleware($adminOnly);
+    Route::put('/update/{id}', [ShiftController::class, 'update'])->middleware($adminOnly);
+    Route::delete('/destroy/{id}', [ShiftController::class, 'destroy'])->middleware($adminOnly);
+    Route::post('/add-user', [ShiftController::class, 'addUserShift'])->middleware($adminOnly);
+    Route::post('/delete-user', [ShiftController::class, 'deleteShiftUser'])->middleware($adminOnly);
 });
 
 Route::prefix('attendance')->middleware('auth:api')->group(function () {
@@ -135,34 +136,25 @@ Route::prefix('roles')->middleware(['auth:api'])->group(function () {
     Route::get('/', [RoleController::class, 'index']);
 });
 
-Route::prefix('user-project')->middleware(['auth:api'])->group(function () {
+Route::prefix('user-project')->middleware(['auth:api', 'role:admin,user_admin'])->group(function () {
     Route::post('/', [UserHaveProjectController::class, 'insertUserAssign']);
     Route::post('/inserts', [UserHaveProjectController::class, 'insertUserAssigns']);
     Route::delete('/{id}', [UserHaveProjectController::class, 'deleteUserAssign']);
 });
 
-Route::prefix('user-division')->middleware(['auth:api'])->group(function () {
+Route::prefix('user-division')->middleware(['auth:api', 'role:admin,user_admin'])->group(function () {
     Route::post('/', [UserHaveDivisionController::class, 'insertUserAssign']);
     Route::delete('/{id}', [UserHaveDivisionController::class, 'deleteUserAssign']);
 });
 
-Route::get('/export', [AttendacesController::class, 'Export']);
-Route::get('/export-data/{file_path}', [FileController::class, 'downloadExcel']);
-
-Route::prefix('files')->middleware(['auth:api'])->group(function () {
-    Route::get('/', [FileController::class, 'index']);
-    Route::patch('{id}', [FileController::class, 'updateFile']);
+Route::middleware(['auth:api', 'role:admin,user_admin'])->group(function () {
+    Route::get('/export', [AttendacesController::class, 'Export']);
+    // Batasi nama file ke satu segmen aman — blokir path-traversal (../, %2F)
+    Route::get('/export-data/{file_path}', [FileController::class, 'downloadExcel'])
+        ->where('file_path', '[A-Za-z0-9_\-.]+');
 });
 
-Route::get('/migrate', function () {
-    try {
-        // Menjalankan perintah migrate
-        Artisan::call('migrate');
-
-        // Jika tanpa error, berikan respons sukses
-        return response()->json(['message' => 'Migration successful'], 200);
-    } catch (\Exception $e) {
-        // Jika terjadi error, berikan respons dengan pesan error
-        return response()->json(['error' => $e->getMessage()], 500);
-    }
+Route::prefix('files')->middleware(['auth:api', 'role:admin,user_admin'])->group(function () {
+    Route::get('/', [FileController::class, 'index']);
+    Route::patch('{id}', [FileController::class, 'updateFile']);
 });

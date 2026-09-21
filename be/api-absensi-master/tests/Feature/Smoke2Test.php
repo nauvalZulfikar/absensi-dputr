@@ -8,13 +8,14 @@ class Smoke2Test extends TestCase
 {
     use RefreshDatabase;
 
-    /** F-08: exported xlsx is downloadable with no token, filename is guessable */
-    public function test_export_download_is_public()
+    /** F-08 (fixed): export download now requires authentication (Fase 1). */
+    public function test_export_download_requires_auth()
     {
         \Storage::put('attendances/attendance_1700000000.xlsx', 'SECRET-PAYROLL');
-        $res = $this->get('/api/export-data/attendance_1700000000.xlsx');
-        $s = $res->baseResponse->getStatusCode(); fwrite(STDERR, "\n[F-08] GET /api/export-data/<guessed-name> unauthenticated -> HTTP {$s}, served bytes\n");
-        $this->assertSame(200, $s);
+        $res = $this->getJson('/api/export-data/attendance_1700000000.xlsx');
+        $s = $res->baseResponse->getStatusCode();
+        fwrite(STDERR, "\n[F-08] GET /api/export-data/<guessed-name> unauthenticated -> HTTP {$s}\n");
+        $this->assertSame(401, $s, 'export download must not be public');
     }
 
     /** F-09: path traversal attempt on the same route */
