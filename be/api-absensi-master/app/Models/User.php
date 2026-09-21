@@ -122,6 +122,20 @@ class User extends Authenticatable implements JWTSubject
         return $this->divisions()->where('devision_id', $divisionId)->exists();
     }
 
+    /**
+     * Boleh menulis resource yang menempel pada sebuah project?
+     * Project → divisi (projects.devisionId) → canManageDivision.
+     * Project tak ada → tolak (kecuali full admin).
+     */
+    public function canManageProject($projectId): bool
+    {
+        if ($this->isFullAdmin()) {
+            return true;
+        }
+        $divisionId = \App\Models\Project::whereKey($projectId)->value('devisionId');
+        return $this->canManageDivision($divisionId);
+    }
+
     public function scopeWhereDivisions($query, $divisionIds)
     {
         if ($query && $divisionIds) {

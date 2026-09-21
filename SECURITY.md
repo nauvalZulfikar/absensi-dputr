@@ -19,7 +19,7 @@ Severity + remediation status. Each row links to its tracking issue.
 | 8 | Medium | reCAPTCHA not enforced server-side + login 500 on missing token | ✅ Fixed (500 + toggle) | #29 |
 | 9 | Medium | Login user enumeration | ✅ Fixed | #30 |
 | 10 | Medium | Error envelopes return HTTP 200; unauth `auth:api` → 500 not 401 | 🟡 Partial | #31 |
-| 11 | Medium | Horizontal escalation: `user_admin` can write across any division | 🟢 Fixed (project + devision + div-assign) | #32 |
+| 11 | Medium | Horizontal escalation: `user_admin` can write across any division | 🟢 Fixed (project/devision/progres + assignments) | #32 |
 
 ## Fixes applied in this branch
 
@@ -99,9 +99,22 @@ is deliberately **not** done here to avoid breaking the client.
   — no assigning users into a foreign division.
 - Tests added to `Fase7Test` (own-division update ok / foreign update+destroy 403,
   assign into own division ok / foreign 403).
-- **Still deferred (same class, #32):** `shift`, `progres`, `user-project`
-  (project-keyed → needs project→division hop), and attendance *reads*
-  (list-scoping). Done incrementally to keep each change verifiable.
+- **Still deferred (same class, #32):** `shift` (pivot + bulk arrays), and
+  attendance *reads* (list-scoping). Done incrementally to keep each change verifiable.
+
+**Fase 8c — extend #32 to progres & user-project (project-keyed)**
+- New reusable `User::canManageProject($projectId)`: resolves the project's
+  division (`projects.devisionId`) then delegates to `canManageDivision`.
+- `ProgressController::store/update/destroy` gated — a Pengawas can't create,
+  edit, or delete progress on a project outside their division (update checks
+  both the source and, if `projectId` is moved, the target project).
+- `UserHaveProjectController::insertUserAssign/insertUserAssigns/deleteUserAssign`
+  gated on the target project's division.
+- Tests added to `Fase7Test` (own-project progres store ok / foreign 403,
+  foreign progres update+destroy 403, own-project assign ok / foreign 403).
+- **Remaining #32:** `shift` (a Shift links to project via the `shift_have_projects`
+  pivot + bulk `project_ids` + `addUserShift`/`deleteShiftUser`) and attendance
+  read-scoping — both need their own careful pass.
 
 ## Verification
 
@@ -120,7 +133,8 @@ is deliberately **not** done here to avoid breaking the client.
 - [x] Tests isolated to an in-memory sqlite DB (`phpunit.xml`) — no longer wipe live seed data.
 - [x] Horizontal ownership: project write ops scoped to the actor's division (#32).
 - [x] #32 scoping on devision update/destroy + user-division assign.
-- [ ] Extend #32 to shift/progres/user-project (project-keyed) + attendance read-scoping.
+- [x] #32 scoping on progres CRUD + user-project assign (project-keyed).
+- [ ] Extend #32 to shift (pivot/bulk) + attendance read-scoping.
 - [ ] The production DB dump containing employee PII must never be committed or shared.
 
 ## Reporting

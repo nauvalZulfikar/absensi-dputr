@@ -13,6 +13,9 @@ class UserHaveProjectController extends Controller
     {
         try {
             $data = UserHaveProject::findOrFail($id);
+            if (! auth()->user()->canManageProject($data->project_id)) {
+                return $this->forbiddenDivision();
+            }
             $data->delete();
             return Json::response($data);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -27,6 +30,9 @@ class UserHaveProjectController extends Controller
     public function insertUserAssign(Request $request)
     {
         try {
+            if (! auth()->user()->canManageProject($request->project_id)) {
+                return $this->forbiddenDivision();
+            }
             $data = new UserHaveProject();
             $data->user_id = $request->user_id;
             $data->project_id = $request->project_id;
@@ -45,6 +51,9 @@ class UserHaveProjectController extends Controller
     public function insertUserAssigns(Request $request)
     {
         try {
+            if (! auth()->user()->canManageProject($request->project_id)) {
+                return $this->forbiddenDivision();
+            }
             $userIds = $request->user_ids;
             foreach ($userIds as $key => $userId) {
                 $data = new UserHaveProject();

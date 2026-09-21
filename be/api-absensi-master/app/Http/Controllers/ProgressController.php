@@ -49,6 +49,9 @@ class ProgressController extends Controller
     public function store(Request $request)
     {
         try {
+            if (! auth()->user()->canManageProject($request->projectId)) {
+                return $this->forbiddenDivision();
+            }
             $data = new Progres();
             $data->projectId = $request->projectId;
             $data->fisik = $request->fisik;
@@ -108,6 +111,11 @@ class ProgressController extends Controller
         try {
             
             $data = Progres::findOrFail($id);
+            // Cek divisi asal DAN divisi tujuan (kalau projectId dipindah)
+            if (! auth()->user()->canManageProject($data->projectId)
+                || ! auth()->user()->canManageProject($request->input('projectId', $data->projectId))) {
+                return $this->forbiddenDivision();
+            }
             $data->projectId = $request->input('projectId', $data->projectId);
             $data->fisik = $request->input('fisik', $data->fisik);
             $data->pencairan = $request->input('pencairan', $data->pencairan);
@@ -133,7 +141,11 @@ class ProgressController extends Controller
     public function destroy($id)
     {
         try {
-            Progres::where('id', $id)->delete();
+            $data = Progres::findOrFail($id);
+            if (! auth()->user()->canManageProject($data->projectId)) {
+                return $this->forbiddenDivision();
+            }
+            $data->delete();
             return Json::response();
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return Json::exception('Error Model ' . $debug = env('APP_DEBUG', false) == true ? $e : '');

@@ -186,4 +186,72 @@ class Fase7Test extends TestCase
         $this->assertNull(\DB::table('user_have_division')
             ->where(['user_id' => $staff->id, 'devision_id' => 2])->first(), 'tak boleh nyusup ke divisi lain');
     }
+
+    // ---- progres (project-keyed, #32 extend) ----
+
+    /** user_admin boleh input progres di project divisinya, tapi bukan project divisi lain. */
+    public function test_user_admin_progres_store_scoped_to_own_project()
+    {
+        $this->seedRoles();
+        $pengawas = $this->makeUser('peng1@test', 'user_admin', 1);
+        $this->makeProject(50, 1); // own
+        $this->makeProject(51, 2); // foreign
+        $token = auth()->login($pengawas);
+
+        $own = $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/progres/store', ['projectId' => 50, 'fisik' => 10, 'pencairan' => 5, 'date' => '2026-02-01']);
+        $this->assertSame(200, $own->status());
+
+        $foreign = $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/progres/store', ['projectId' => 51, 'fisik' => 10, 'pencairan' => 5, 'date' => '2026-02-01']);
+        $this->assertSame(403, $foreign->status());
+    }
+
+    /** user_admin TAK boleh ubah/hapus progres milik project divisi lain. */
+    public function test_user_admin_cannot_touch_foreign_progres()
+    {
+        $this->seedRoles();
+        $admin = $this->makeUser('admin@test', 'admin');
+        $pengawas = $this->makeUser('peng1@test', 'user_admin', 1);
+        $this->makeProject(60, 2); // divisi lain
+
+        // admin bikin progres di project divisi 2
+        $adminTok = auth()->login($admin);
+        $created = $this->withHeader('Authorization', "Bearer $adminTok")
+            ->postJson('/api/progres/store', ['projectId' => 60, 'fisik' => 10, 'pencairan' => 5, 'date' => '2026-02-01']);
+        $pid = $created->json('data.id');
+        $this->assertNotNull($pid);
+
+        // pengawas divisi 1 coba sentuh
+        $pengTok = auth()->login($pengawas);
+        $upd = $this->withHeader('Authorization', "Bearer $pengTok")
+            ->putJson("/api/progres/update/$pid", ['fisik' => 99]);
+        $this->assertSame(403, $upd->status());
+
+        $del = $this->withHeader('Authorization', "Bearer $pengTok")
+            ->postJson("/api/progres/destroy/$pid");
+        $this->assertSame(403, $del->status());
+    }
+
+    // ---- user-project assign (project-keyed, #32 extend) ----
+
+    /** user_admin boleh assign user ke project divisinya, tapi bukan project divisi lain. */
+    public function test_user_admin_project_assign_scoped()
+    {
+        $this->seedRoles();
+        $pengawas = $this->makeUser('peng1@test', 'user_admin', 1);
+        $staff = $this->makeUser('staff@test', 'user');
+        $this->makeProject(70, 1); // own
+        $this->makeProject(71, 2); // foreign
+        $token = auth()->login($pengawas);
+
+        $own = $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/user-project', ['user_id' => $staff->id, 'project_id' => 70]);
+        $this->assertSame(200, $own->status());
+
+        $foreign = $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/user-project', ['user_id' => $staff->id, 'project_id' => 71]);
+        $this->assertSame(403, $foreign->status());
+        $this->assertSame(0, \DB::table('user_have_project')->where('project_id', 71)->count());
+    }
 }
