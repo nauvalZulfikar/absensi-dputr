@@ -74,7 +74,7 @@ class DevisionController extends Controller
 
             $users = $request->usersIdsAssignTo;
 
-            foreach ($users as $key => $userId) {
+            foreach (($users ?? []) as $key => $userId) {
                 $userAssign = new UserHaveDivision();
                 $userAssign->user_id = $userId;
                 $userAssign->devision_id = $data->id;

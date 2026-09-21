@@ -129,18 +129,22 @@ class ShiftController extends Controller
                         ->whereIn('user_have_project.project_id', $project_ids)
                         ->first();
 
-                    $mailData = [
-                        'subject' => 'DETAIL INFORMASI PROJECT',
-                        'nameUser' => $userData->nameUser,
-                        'projectName' => $userData->projectName,
-                        'projectNo' => $userData->projectNo,
-                        'startdate' => $userData->startdate,
-                        'targetdate' => $userData->targetdate,
-                        'address' => $userData->address,
-                        'timeInShift' => $userData->timeInShift,
-                        'timeOutShift' => $userData->timeOutShift
-                    ];
-                    User::sendMail($userData->email, $mailData);
+                    // Join bisa kosong kalau user belum di-assign ke project itu;
+                    // jangan crash — cukup lewati notifikasi email untuk user ini.
+                    if ($userData) {
+                        $mailData = [
+                            'subject' => 'DETAIL INFORMASI PROJECT',
+                            'nameUser' => $userData->nameUser,
+                            'projectName' => $userData->projectName,
+                            'projectNo' => $userData->projectNo,
+                            'startdate' => $userData->startdate,
+                            'targetdate' => $userData->targetdate,
+                            'address' => $userData->address,
+                            'timeInShift' => $userData->timeInShift,
+                            'timeOutShift' => $userData->timeOutShift
+                        ];
+                        User::sendMail($userData->email, $mailData);
+                    }
                 }
                 array_push($data, $shiftHaveUser);
             }

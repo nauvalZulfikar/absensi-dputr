@@ -215,6 +215,9 @@ class ProjectController extends Controller
         try {
             $dateNow = Carbon::now()->toDateString();
             $project = Project::where('id', $request->projectId)->first();
+            if (! $project) {
+                return Json::exception('Project tidak ditemukan');
+            }
             $userId = $project->userId;
             // dd($userId, $dateNow);
             $attendance = Attendance::where('date', $dateNow)
