@@ -39,7 +39,10 @@ Route::group([
         Route::post('/change-password', [AuthController::class, 'changePassword']);
     });
 
-    $router->group(['prefix' => 'attendances'], function ($router) {
+    // Legacy alias of POST /api/attendance (store). Dulu unauth + percaya userId
+    // dari body → siapa pun bisa palsu-in kehadiran orang lain. Sekarang wajib login;
+    // userId diambil dari token, bukan request. Duplikat store() — kandidat dihapus.
+    $router->group(['prefix' => 'attendances', 'middleware' => 'auth:api'], function ($router) {
         Route::post('/', [AttendacesController::class, 'Attendances']);
     });
 

@@ -14,8 +14,8 @@ Severity + remediation status. Each row links to its tracking issue.
 | 3 | Critical | `/api/export` + `/api/export-data/{file}` unauthenticated → attendance PII (incl. GPS) leak | ✅ Fixed | #24 |
 | 4 | High | Path traversal in `/export-data/{file_path}` | ✅ Fixed | #25 |
 | 5 | High | `APP_DEBUG=true` in prod → stack traces & server paths leaked | ✅ Fixed (config) | #26 |
-| 6 | High | `/api/attendances` unauthenticated + trusts client `userId` → forge attendance | ⬜ Open | #27 |
-| 7 | High | Public register lets caller choose `roleId` → self-escalate to admin | ⬜ Open | #28 |
+| 6 | High | `/api/attendances` unauthenticated + trusts client `userId` → forge attendance | ✅ Fixed | #27 |
+| 7 | High | Public register lets caller choose `roleId` → self-escalate to admin | ✅ Fixed | #28 |
 | 8 | Medium | reCAPTCHA not enforced server-side + login 500 on missing token | ⬜ Open | #29 |
 | 9 | Medium | Login user enumeration | ⬜ Open | #30 |
 | 10 | Medium | Error envelopes return HTTP 200; unauth `auth:api` → 500 not 401 | ⬜ Open | #31 |
@@ -48,6 +48,16 @@ Severity + remediation status. Each row links to its tracking issue.
 - `downloadFile` rewritten to pull the export as an authenticated blob (via the
   JWT-bearing http-client) — the raw `<a href>` broke once `/export-data` was gated.
 
+**Fase 5 — client-controlled identity (both HIGH)**
+- Legacy `POST /api/attendances` (`Attendances()`) now requires `auth:api` and
+  derives `userId` from the token instead of the request body — closes anonymous
+  attendance forgery. It duplicates `store()` and is a candidate for removal. [#27]
+- Public `register` no longer honours a client `roleId`; it always assigns the
+  plain `user` role (resolved by name, not a magic id). Admin-driven creation via
+  `/api/user` is unchanged. [#28]
+- Tests: `Fase5Test`; smoke probes F-01/F-05 flipped from documenting the holes to
+  asserting they are closed.
+
 ## Verification
 
 - Backend suite green: `php artisan test` (all feature tests, incl. `RoleGateTest`,
@@ -60,7 +70,7 @@ Severity + remediation status. Each row links to its tracking issue.
 
 - [ ] Prod `.env`: `APP_DEBUG=false`.
 - [ ] Rotate any credentials that may have been exposed while `APP_DEBUG` was on.
-- [ ] Work the still-open findings #27–#31 before the next release.
+- [ ] Work the still-open findings #29–#31 before the next release.
 - [ ] The production DB dump containing employee PII must never be committed or shared.
 
 ## Reporting

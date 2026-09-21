@@ -75,7 +75,8 @@ class AttendacesController extends Controller
             $attendancesImage = $this->saveImage($request->file('attendances'), 'attendances');
 
             $data = Attendance::create([
-                'userId' => $request->userId,
+                'userId' => auth()->user()->id, // JANGAN percaya userId dari body
+
                 'mediaAttendaceId' => $attendancesImage->id,
                 'mediaOfWorkId' => $ofWorkImage->id,
                 'projectId' => $request->projectId,

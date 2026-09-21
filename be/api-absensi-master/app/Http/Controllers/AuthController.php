@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Helpers\Json;
 use App\Models\Profile;
+use App\Models\Role;
 use App\Models\RoleHasUser;
 use Illuminate\Http\Request;
 use Validator;
@@ -87,12 +88,18 @@ class AuthController extends Controller
                 'name' => $request->name,
             ]);
 
-            foreach ($request->roleId as $value) {
-                $roleHas = new RoleHasUser();
-                $roleHas->userId = $user->id;
-                $roleHas->roleId = $value;
-                $roleHas->save();
+            // Registrasi publik TIDAK boleh memilih peran. Dulu roleId diambil
+            // mentah dari body → siapa pun bisa daftar sebagai admin. Selalu paksa
+            // peran staff biasa ('user'); admin menaikkan peran lewat /api/user.
+            $userRole = Role::where('name', 'user')->first();
+            if (! $userRole) {
+                DB::rollBack();
+                return Json::exception('Peran default tidak tersedia', 500);
             }
+            $roleHas = new RoleHasUser();
+            $roleHas->userId = $user->id;
+            $roleHas->roleId = $userRole->id;
+            $roleHas->save();
 
             DB::commit();
 

@@ -42,8 +42,8 @@ class SmokeTest extends TestCase
         return 1;
     }
 
-    /** F-01: /api/attendances needs no token and trusts client-supplied userId */
-    public function test_attendance_can_be_posted_without_a_token()
+    /** F-01 (fixed): /api/attendances now needs a token and cannot forge another user (Fase 5, #27). */
+    public function test_attendance_cannot_be_forged_without_a_token()
     {
         $victim = $this->user();
         $this->project();
@@ -59,9 +59,9 @@ class SmokeTest extends TestCase
         ]);
 
         fwrite(STDERR, "\n[F-01] -> HTTP {$res->status()} BODY: " . substr($res->getContent(),0,400) . "\n");
-        $this->assertNotSame(401, $res->status(), 'endpoint is unauthenticated');
-        $this->assertSame(1, Attendance::where('userId', $victim->id)->count(),
-            'attendance row forged for another user without logging in');
+        $this->assertGreaterThanOrEqual(400, $res->status(), 'endpoint must reject unauthenticated');
+        $this->assertSame(0, Attendance::where('userId', $victim->id)->count(),
+            'no attendance may be forged for another user without logging in');
     }
 
     /** F-02 (fixed): /api/migrate route removed entirely (Fase 0). */
@@ -92,10 +92,10 @@ class SmokeTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /** F-05: public register lets the caller pick its own roleId */
-    public function test_register_lets_caller_choose_role()
+    /** F-05 (fixed): public register ignores client roleId — no self-escalation to admin (Fase 5, #28). */
+    public function test_register_cannot_choose_admin_role()
     {
-        \DB::table('roles')->insert([['id' => 1, 'name' => 'admin'], ['id' => 2, 'name' => 'staff']]);
+        \DB::table('roles')->insert([['id' => 1, 'name' => 'admin'], ['id' => 2, 'name' => 'user']]);
 
         $res = $this->postJson('/api/auth/register', [
             'name' => 'Penyusup',
@@ -108,7 +108,7 @@ class SmokeTest extends TestCase
 
         $admins = \DB::table('role_has_users')->where('roleId', 1)->count();
         fwrite(STDERR, "[F-05] POST /api/auth/register roleId=[1] -> HTTP {$res->status()}, admin rows created: {$admins}\n");
-        $this->assertTrue(true);
+        $this->assertSame(0, $admins, 'registrasi publik tak boleh menghasilkan admin');
     }
 
     /** F-06: late/on-time compares a datetime against a TIME column */
