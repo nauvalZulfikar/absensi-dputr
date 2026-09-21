@@ -93,6 +93,35 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(UserHaveDivision::class, 'user_id');
     }
 
+    /**
+     * Full admin (admin/superadmin) — akses lintas divisi tak dibatasi.
+     * CATATAN: user_admin (Pengawas) TIDAK termasuk di sini; dia hanya boleh
+     * divisinya sendiri (lihat canManageDivision()).
+     */
+    public function isFullAdmin(): bool
+    {
+        return $this->roles()
+            ->whereHas('role', fn ($q) => $q->whereIn('name', ['admin', 'superadmin']))
+            ->exists();
+    }
+
+    /**
+     * Boleh menulis (buat/ubah/hapus) resource di divisi ini?
+     * - Full admin: selalu boleh.
+     * - user_admin: hanya divisi yang ditugaskan padanya (user_have_division).
+     * - $divisionId null → tolak, kecuali full admin.
+     */
+    public function canManageDivision($divisionId): bool
+    {
+        if ($this->isFullAdmin()) {
+            return true;
+        }
+        if ($divisionId === null) {
+            return false;
+        }
+        return $this->divisions()->where('devision_id', $divisionId)->exists();
+    }
+
     public function scopeWhereDivisions($query, $divisionIds)
     {
         if ($query && $divisionIds) {

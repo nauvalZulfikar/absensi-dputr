@@ -19,6 +19,7 @@ Severity + remediation status. Each row links to its tracking issue.
 | 8 | Medium | reCAPTCHA not enforced server-side + login 500 on missing token | ✅ Fixed (500 + toggle) | #29 |
 | 9 | Medium | Login user enumeration | ✅ Fixed | #30 |
 | 10 | Medium | Error envelopes return HTTP 200; unauth `auth:api` → 500 not 401 | 🟡 Partial | #31 |
+| 11 | Medium | Horizontal escalation: `user_admin` can write projects in any division | ✅ Fixed (project) | #32 |
 
 ## Fixes applied in this branch
 
@@ -78,6 +79,21 @@ intentional API contract the Vue FE depends on (it branches on `meta.status`, no
 the HTTP code). Flipping it to real status codes is a coordinated FE+BE change and
 is deliberately **not** done here to avoid breaking the client.
 
+**Fase 8 — horizontal ownership scoping (#32)**
+- A `user_admin` (Pengawas) passed the role gate but could then write to **any**
+  division's projects by guessing an id — the controller only did `findOrFail`,
+  never checking the resource's division against the actor's assignments.
+- New reusable `User::canManageDivision($divisionId)`: full admin (`admin`/`superadmin`)
+  is unrestricted; `user_admin` is limited to divisions assigned via
+  `user_have_division`. Gated `ProjectController::store/update/destroy` — a
+  cross-division write now returns a real **403** (same envelope as `EnsureRole`).
+- Tests: `Fase7Test` (own-division write ok, foreign update/destroy/store 403 +
+  unchanged, full admin cross-division ok).
+- **Deferred (same class, tracked under #32):** the ownership check is not yet
+  applied to `devision`, `shift`, `progres`, `user-project`/`user-division`
+  assignment, or attendance *reads* (list-scoping). Each needs the same helper
+  plus a resource→division resolution; done incrementally to keep changes verifiable.
+
 ## Verification
 
 - Backend suite green: `php artisan test` (all feature tests, incl. `RoleGateTest`,
@@ -93,7 +109,8 @@ is deliberately **not** done here to avoid breaking the client.
 - [ ] Optionally set `RECAPTCHA_ENFORCE=true` once GCP creds + FE token flow are verified.
 - [ ] Decide on #31 (error-envelope HTTP status) as a coordinated FE+BE change.
 - [x] Tests isolated to an in-memory sqlite DB (`phpunit.xml`) — no longer wipe live seed data.
-- [ ] Remaining hardening: horizontal ownership scoping (user_admin limited to own division).
+- [x] Horizontal ownership: project write ops scoped to the actor's division (#32).
+- [ ] Extend #32 scoping to devision/shift/progres/assignment endpoints + attendance read-scoping.
 - [ ] The production DB dump containing employee PII must never be committed or shared.
 
 ## Reporting
