@@ -16,9 +16,9 @@ Severity + remediation status. Each row links to its tracking issue.
 | 5 | High | `APP_DEBUG=true` in prod → stack traces & server paths leaked | ✅ Fixed (config) | #26 |
 | 6 | High | `/api/attendances` unauthenticated + trusts client `userId` → forge attendance | ✅ Fixed | #27 |
 | 7 | High | Public register lets caller choose `roleId` → self-escalate to admin | ✅ Fixed | #28 |
-| 8 | Medium | reCAPTCHA not enforced server-side + login 500 on missing token | ⬜ Open | #29 |
-| 9 | Medium | Login user enumeration | ⬜ Open | #30 |
-| 10 | Medium | Error envelopes return HTTP 200; unauth `auth:api` → 500 not 401 | ⬜ Open | #31 |
+| 8 | Medium | reCAPTCHA not enforced server-side + login 500 on missing token | ✅ Fixed (500 + toggle) | #29 |
+| 9 | Medium | Login user enumeration | ✅ Fixed | #30 |
+| 10 | Medium | Error envelopes return HTTP 200; unauth `auth:api` → 500 not 401 | 🟡 Partial | #31 |
 
 ## Fixes applied in this branch
 
@@ -58,6 +58,26 @@ Severity + remediation status. Each row links to its tracking issue.
 - Tests: `Fase5Test`; smoke probes F-01/F-05 flipped from documenting the holes to
   asserting they are closed.
 
+**Fase 6 — login flow (both MEDIUM)**
+- `createAssessment()` param made nullable + early-returns on empty token — a
+  missing `g-recaptcha-response` no longer TypeErrors into a 500. reCAPTCHA stays
+  decorative by default; a new `RECAPTCHA_ENFORCE` env flag (default `false`)
+  rejects tokenless logins when switched on. Full score-based gating still needs
+  live GCP creds + a verified FE token flow — deferred. [#29]
+- Login now returns one uniform error ("Email atau password salah") for both an
+  unknown email and a wrong password, and drops the duplicate `auth()->attempt`.
+  The old "Email not registered" vs "Invalid password" split let an attacker
+  enumerate registered emails. [#30]
+- Tests: `Fase6Test`; smoke probes F-04/F-10 flipped to assert the fixes.
+
+**#31 — partial.** The "unauthenticated → 500" half is already correct: the
+framework renders `AuthenticationException` as JSON **401** for API requests
+(proven by `RoleGateTest::missing token returns 401`). The remaining half — error
+payloads returned with HTTP **200** inside a `meta.status` envelope — is an
+intentional API contract the Vue FE depends on (it branches on `meta.status`, not
+the HTTP code). Flipping it to real status codes is a coordinated FE+BE change and
+is deliberately **not** done here to avoid breaking the client.
+
 ## Verification
 
 - Backend suite green: `php artisan test` (all feature tests, incl. `RoleGateTest`,
@@ -70,7 +90,9 @@ Severity + remediation status. Each row links to its tracking issue.
 
 - [ ] Prod `.env`: `APP_DEBUG=false`.
 - [ ] Rotate any credentials that may have been exposed while `APP_DEBUG` was on.
-- [ ] Work the still-open findings #29–#31 before the next release.
+- [ ] Optionally set `RECAPTCHA_ENFORCE=true` once GCP creds + FE token flow are verified.
+- [ ] Decide on #31 (error-envelope HTTP status) as a coordinated FE+BE change.
+- [ ] Remaining hardening: horizontal ownership scoping + a separate test DB in `phpunit.xml`.
 - [ ] The production DB dump containing employee PII must never be committed or shared.
 
 ## Reporting

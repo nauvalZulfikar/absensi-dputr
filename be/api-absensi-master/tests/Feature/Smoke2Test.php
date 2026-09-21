@@ -26,14 +26,15 @@ class Smoke2Test extends TestCase
         $this->assertTrue(true);
     }
 
-    /** F-10: login tells you whether an email exists */
-    public function test_login_user_enumeration()
+    /** F-10 (fixed): login gives an identical answer for known vs unknown email (Fase 6, #30). */
+    public function test_login_user_enumeration_closed()
     {
         User::create(['name'=>'A','userName'=>'a','email'=>'ada@example.test','password'=>bcrypt('secret123')]);
         $a = $this->postJson('/api/auth/login', ['email'=>'ada@example.test','password'=>'wrong','g-recaptcha-response'=>'x']);
         $b = $this->postJson('/api/auth/login', ['email'=>'nobody@example.test','password'=>'wrong','g-recaptcha-response'=>'x']);
         fwrite(STDERR, "[F-10] existing email -> " . substr($a->getContent(),0,90) . "\n");
         fwrite(STDERR, "[F-10] unknown  email -> " . substr($b->getContent(),0,90) . "\n");
-        $this->assertTrue(true);
+        $this->assertSame($a->status(), $b->status());
+        $this->assertSame($a->getContent(), $b->getContent(), 'respons harus identik, tak boleh bocor');
     }
 }

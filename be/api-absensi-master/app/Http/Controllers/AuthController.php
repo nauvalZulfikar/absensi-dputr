@@ -33,29 +33,32 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required|string',
         ]);
-        $userResponseToken = $request->input('g-recaptcha-response');
-
-        // Panggil fungsi untuk memverifikasi reCAPTCHA
-        $verificationResult = $this->createAssessment($userResponseToken);
-
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
+        $userResponseToken = $request->input('g-recaptcha-response');
+
+        // reCAPTCHA enforcement OPSIONAL, default OFF supaya tak mengunci pengguna.
+        // Nyalakan lewat RECAPTCHA_ENFORCE=true setelah kredensial GCP + token dari
+        // FE terverifikasi bekerja. Score-based gating menyusul (butuh GCP live).
+        if (filter_var(env('RECAPTCHA_ENFORCE', false), FILTER_VALIDATE_BOOLEAN) && empty($userResponseToken)) {
+            return response()->json(['error' => 'reCAPTCHA required'], 422);
+        }
+
+        // Verifikasi reCAPTCHA. Tak lagi 500 kalau token kosong (param nullable).
+        $verificationResult = $this->createAssessment($userResponseToken);
+
         $credentials = $request->only('email', 'password');
-
-        // Cek apakah email sudah terdaftar
-        $user = User::where('email', $credentials['email'])->entities('roles.role,profile.medias,divisions.division')->first();
-        if (!$user) {
-            return response()->json(['error' => 'Email not registered'], 401);
-        }
-
-        // Cek apakah password sesuai
-        if (!auth()->attempt($credentials)) {
-            return Json::exception("Invalid password");
-        }
-
         $token = auth()->attempt($credentials);
+        if (!$token) {
+            // Pesan seragam untuk email tak dikenal & password salah → tak bisa
+            // dipakai enumerasi email mana yang terdaftar.
+            return Json::exception('Email atau password salah');
+        }
+
+        $user = User::where('email', $credentials['email'])
+            ->entities('roles.role,profile.medias,divisions.division')->first();
 
         $data = [
             'token' => $token,
@@ -212,8 +215,14 @@ class AuthController extends Controller
         return Json::response($responses);
     }
 
-    private function createAssessment(string $token)
+    private function createAssessment(?string $token)
     {
+        // Token kosong/null → jangan panggil GCP, jangan lempar TypeError (dulu 500).
+        // reCAPTCHA di sini dekoratif; enforcement ditangani di login().
+        if (empty($token)) {
+            return response()->json(['error' => 'missing token']);
+        }
+
         try {
             // Create the reCAPTCHA client.
             $client = new RecaptchaEnterpriseServiceClient();

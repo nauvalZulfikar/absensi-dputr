@@ -80,7 +80,7 @@ class SmokeTest extends TestCase
         $this->assertSame(401, $res->status());
     }
 
-    /** F-04: login with no g-recaptcha-response crashes before validation */
+    /** F-04 (fixed): login with no g-recaptcha-response no longer 500s (Fase 6, #29). */
     public function test_login_without_recaptcha_token()
     {
         $this->user();
@@ -89,7 +89,7 @@ class SmokeTest extends TestCase
             'password' => 'secret123',
         ]);
         fwrite(STDERR, "[F-04] POST /api/auth/login without g-recaptcha-response -> HTTP {$res->status()}\n");
-        $this->assertTrue(true);
+        $this->assertNotSame(500, $res->status(), 'token recaptcha kosong tak boleh 500');
     }
 
     /** F-05 (fixed): public register ignores client roleId — no self-escalation to admin (Fase 5, #28). */
