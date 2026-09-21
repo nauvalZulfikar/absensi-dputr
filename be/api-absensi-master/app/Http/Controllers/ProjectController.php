@@ -60,18 +60,6 @@ class ProjectController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    /**
-     * user_admin (Pengawas) hanya boleh menyentuh divisi yang ditugaskan padanya.
-     * Full admin lolos. Kembalikan 403 envelope yang sama dgn EnsureRole.
-     */
-    private function forbiddenDivision()
-    {
-        return response()->json(
-            ['meta' => ['status' => false, 'message' => 'Forbidden: di luar divisi Anda.', 'code' => 403]],
-            403
-        );
-    }
-
     public function store(Request $request)
     {
         try {

@@ -129,4 +129,61 @@ class Fase7Test extends TestCase
         $this->assertSame(200, $res->status());
         $this->assertSame('Admin Sah', Project::find(40)->name);
     }
+
+    // ---- divisi itu sendiri (#32 extend) ----
+
+    /** user_admin boleh ubah divisinya sendiri, tapi bukan divisi lain. */
+    public function test_user_admin_can_update_own_division_but_not_foreign()
+    {
+        $this->seedRoles();
+        $pengawas = $this->makeUser('peng1@test', 'user_admin', 1);
+        $token = auth()->login($pengawas);
+
+        $own = $this->withHeader('Authorization', "Bearer $token")
+            ->putJson('/api/devision/update/1', ['name' => 'Divisi Sendiri']);
+        $this->assertSame(200, $own->status());
+        $this->assertSame('Divisi Sendiri', \DB::table('devisions')->where('id', 1)->value('name'));
+
+        $foreign = $this->withHeader('Authorization', "Bearer $token")
+            ->putJson('/api/devision/update/2', ['name' => 'Dibajak']);
+        $this->assertSame(403, $foreign->status());
+        $this->assertSame('Divisi Dua', \DB::table('devisions')->where('id', 2)->value('name'));
+    }
+
+    /** user_admin TAK boleh hapus divisi lain. */
+    public function test_user_admin_cannot_destroy_foreign_division()
+    {
+        $this->seedRoles();
+        $pengawas = $this->makeUser('peng1@test', 'user_admin', 1);
+
+        $token = auth()->login($pengawas);
+        $res = $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/devision/destroy/2');
+
+        $this->assertSame(403, $res->status());
+        $this->assertNotNull(\DB::table('devisions')->where('id', 2)->first());
+    }
+
+    // ---- assign user ke divisi (#32 extend) ----
+
+    /** user_admin boleh masukin user ke divisinya, tapi bukan ke divisi lain. */
+    public function test_user_admin_can_assign_into_own_division_only()
+    {
+        $this->seedRoles();
+        $pengawas = $this->makeUser('peng1@test', 'user_admin', 1);
+        $staff = $this->makeUser('staff@test', 'user');
+        $token = auth()->login($pengawas);
+
+        $own = $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/user-division', ['user_id' => $staff->id, 'division_id' => 1]);
+        $this->assertSame(200, $own->status());
+        $this->assertNotNull(\DB::table('user_have_division')
+            ->where(['user_id' => $staff->id, 'devision_id' => 1, 'type' => 'assign'])->first());
+
+        $foreign = $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/user-division', ['user_id' => $staff->id, 'division_id' => 2]);
+        $this->assertSame(403, $foreign->status());
+        $this->assertNull(\DB::table('user_have_division')
+            ->where(['user_id' => $staff->id, 'devision_id' => 2])->first(), 'tak boleh nyusup ke divisi lain');
+    }
 }

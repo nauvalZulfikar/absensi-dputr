@@ -19,7 +19,7 @@ Severity + remediation status. Each row links to its tracking issue.
 | 8 | Medium | reCAPTCHA not enforced server-side + login 500 on missing token | ✅ Fixed (500 + toggle) | #29 |
 | 9 | Medium | Login user enumeration | ✅ Fixed | #30 |
 | 10 | Medium | Error envelopes return HTTP 200; unauth `auth:api` → 500 not 401 | 🟡 Partial | #31 |
-| 11 | Medium | Horizontal escalation: `user_admin` can write projects in any division | ✅ Fixed (project) | #32 |
+| 11 | Medium | Horizontal escalation: `user_admin` can write across any division | 🟢 Fixed (project + devision + div-assign) | #32 |
 
 ## Fixes applied in this branch
 
@@ -89,10 +89,19 @@ is deliberately **not** done here to avoid breaking the client.
   cross-division write now returns a real **403** (same envelope as `EnsureRole`).
 - Tests: `Fase7Test` (own-division write ok, foreign update/destroy/store 403 +
   unchanged, full admin cross-division ok).
-- **Deferred (same class, tracked under #32):** the ownership check is not yet
-  applied to `devision`, `shift`, `progres`, `user-project`/`user-division`
-  assignment, or attendance *reads* (list-scoping). Each needs the same helper
-  plus a resource→division resolution; done incrementally to keep changes verifiable.
+
+**Fase 8b — extend #32 to division & division-assignment**
+- `forbiddenDivision()` lifted to the base `Controller` (shared by all controllers,
+  no per-controller copy).
+- `DevisionController::update/destroy` now gate on `canManageDivision($id)` — a
+  Pengawas can no longer rename/delete a division that isn't theirs.
+- `UserHaveDivisionController::insertUserAssign` gates on the target `division_id`
+  — no assigning users into a foreign division.
+- Tests added to `Fase7Test` (own-division update ok / foreign update+destroy 403,
+  assign into own division ok / foreign 403).
+- **Still deferred (same class, #32):** `shift`, `progres`, `user-project`
+  (project-keyed → needs project→division hop), and attendance *reads*
+  (list-scoping). Done incrementally to keep each change verifiable.
 
 ## Verification
 
@@ -110,7 +119,8 @@ is deliberately **not** done here to avoid breaking the client.
 - [ ] Decide on #31 (error-envelope HTTP status) as a coordinated FE+BE change.
 - [x] Tests isolated to an in-memory sqlite DB (`phpunit.xml`) — no longer wipe live seed data.
 - [x] Horizontal ownership: project write ops scoped to the actor's division (#32).
-- [ ] Extend #32 scoping to devision/shift/progres/assignment endpoints + attendance read-scoping.
+- [x] #32 scoping on devision update/destroy + user-division assign.
+- [ ] Extend #32 to shift/progres/user-project (project-keyed) + attendance read-scoping.
 - [ ] The production DB dump containing employee PII must never be committed or shared.
 
 ## Reporting

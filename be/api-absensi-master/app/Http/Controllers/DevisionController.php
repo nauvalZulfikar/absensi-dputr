@@ -133,6 +133,9 @@ class DevisionController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            if (! auth()->user()->canManageDivision((int) $id)) {
+                return $this->forbiddenDivision();
+            }
             $data = Devision::findOrFail($id);
             $data->name = $request->input("name", $data->name);
             $data->slug = Devision::generateSlug($request->name);
@@ -158,7 +161,9 @@ class DevisionController extends Controller
     public function destroy($id)
     {
         try {
-
+            if (! auth()->user()->canManageDivision((int) $id)) {
+                return $this->forbiddenDivision();
+            }
             Devision::where('id', $id)->delete();
             return response()->json([
                 'status' => 'success',

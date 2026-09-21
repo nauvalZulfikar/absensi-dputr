@@ -26,6 +26,9 @@ class UserHaveDivisionController extends Controller
     public function insertUserAssign(Request $request)
     {
         try {
+            if (! auth()->user()->canManageDivision((int) $request->division_id)) {
+                return $this->forbiddenDivision();
+            }
             $data = new UserHaveDivision();
             $data->user_id = $request->user_id;
             $data->devision_id = $request->division_id;
