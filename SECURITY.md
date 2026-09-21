@@ -18,7 +18,7 @@ Severity + remediation status. Each row links to its tracking issue.
 | 7 | High | Public register lets caller choose `roleId` → self-escalate to admin | ✅ Fixed | #28 |
 | 8 | Medium | reCAPTCHA not enforced server-side + login 500 on missing token | ✅ Fixed (500 + toggle) | #29 |
 | 9 | Medium | Login user enumeration | ✅ Fixed | #30 |
-| 10 | Medium | Error envelopes return HTTP 200; unauth `auth:api` → 500 not 401 | 🟡 Partial | #31 |
+| 10 | Medium | Error envelopes return HTTP 200; unauth `auth:api` → 500 not 401 | ✅ Resolved (security half fixed; envelope by-design) | #31 |
 | 11 | Medium | Horizontal escalation: `user_admin` acts/reads across any division | ✅ Fixed | #32 |
 
 ## Fixes applied in this branch
@@ -71,13 +71,30 @@ Severity + remediation status. Each row links to its tracking issue.
   enumerate registered emails. [#30]
 - Tests: `Fase6Test`; smoke probes F-04/F-10 flipped to assert the fixes.
 
-**#31 — partial.** The "unauthenticated → 500" half is already correct: the
-framework renders `AuthenticationException` as JSON **401** for API requests
-(proven by `RoleGateTest::missing token returns 401`). The remaining half — error
-payloads returned with HTTP **200** inside a `meta.status` envelope — is an
-intentional API contract the Vue FE depends on (it branches on `meta.status`, not
-the HTTP code). Flipping it to real status codes is a coordinated FE+BE change and
-is deliberately **not** done here to avoid breaking the client.
+**#31 — resolved (by design).** Two halves, both settled:
+
+1. **Security-relevant half — fixed.** Anything auth/authz now returns a *real*
+   HTTP status, not a 200:
+   - Unauthenticated `auth:api` → framework renders `AuthenticationException` as
+     JSON **401** (proven by `RoleGateTest::missing token returns 401`).
+   - Wrong role → `EnsureRole` returns a real **403**.
+   - Cross-division access (`user_admin`) → the #32 gates (`forbiddenDivision()`)
+     return a real **403**.
+   So an attacker/monitor can no longer tell "denied" from "ok" by the envelope —
+   the HTTP code already carries it.
+
+2. **Envelope half — intentional API contract, not a defect.** Business/validation
+   and generic errors still come back as HTTP **200** wrapped in `meta.status`
+   (via `Json::exception()`). The Vue FE branches on `meta.status`, not the HTTP
+   code: its axios interceptor (`http-client.js` `globalErrorHandler`) only reads
+   `error.response.status` to detect `401` token-expiry, and every component reads
+   business errors from the `.then` (200) path. Flipping these to real codes would
+   move every such response into the FE's `.catch`/reject path — a breaking,
+   FE-wide change with **no security value** (auth/authz codes are already real).
+
+   Decision: **closed as by-design.** If the API is ever modernised to REST-proper
+   status codes, it must be a coordinated FE+BE refactor (audit + fix every FE
+   error handler, then Playwright-verify) — tracked separately, not a security fix.
 
 **Fase 8 — horizontal ownership scoping (#32)**
 - A `user_admin` (Pengawas) passed the role gate but could then write to **any**
@@ -157,7 +174,8 @@ is deliberately **not** done here to avoid breaking the client.
 - [ ] Prod `.env`: `APP_DEBUG=false`.
 - [ ] Rotate any credentials that may have been exposed while `APP_DEBUG` was on.
 - [ ] Optionally set `RECAPTCHA_ENFORCE=true` once GCP creds + FE token flow are verified.
-- [ ] Decide on #31 (error-envelope HTTP status) as a coordinated FE+BE change.
+- [x] #31 closed by-design: auth/authz already return real 401/403; the 200
+      business-error envelope is an intentional FE contract (flip = separate FE+BE refactor).
 - [x] Tests isolated to an in-memory sqlite DB (`phpunit.xml`) — no longer wipe live seed data.
 - [x] Horizontal ownership: project write ops scoped to the actor's division (#32).
 - [x] #32 scoping on devision update/destroy + user-division assign.
