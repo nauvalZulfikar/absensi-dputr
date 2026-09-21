@@ -92,7 +92,8 @@ is deliberately **not** done here to avoid breaking the client.
 - [ ] Rotate any credentials that may have been exposed while `APP_DEBUG` was on.
 - [ ] Optionally set `RECAPTCHA_ENFORCE=true` once GCP creds + FE token flow are verified.
 - [ ] Decide on #31 (error-envelope HTTP status) as a coordinated FE+BE change.
-- [ ] Remaining hardening: horizontal ownership scoping + a separate test DB in `phpunit.xml`.
+- [x] Tests isolated to an in-memory sqlite DB (`phpunit.xml`) — no longer wipe live seed data.
+- [ ] Remaining hardening: horizontal ownership scoping (user_admin limited to own division).
 - [ ] The production DB dump containing employee PII must never be committed or shared.
 
 ## Reporting
