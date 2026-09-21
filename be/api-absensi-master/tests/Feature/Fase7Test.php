@@ -254,4 +254,56 @@ class Fase7Test extends TestCase
         $this->assertSame(403, $foreign->status());
         $this->assertSame(0, \DB::table('user_have_project')->where('project_id', 71)->count());
     }
+
+    // ---- shift (project via shift_have_projects pivot, #32 extend) ----
+
+    /** user_admin boleh bikin shift di project divisinya, tapi bukan project divisi lain. */
+    public function test_shift_store_scoped_to_own_project()
+    {
+        $this->seedRoles();
+        $pengawas = $this->makeUser('peng1@test', 'user_admin', 1);
+        $this->makeProject(80, 1); // own
+        $this->makeProject(81, 2); // foreign
+        $token = auth()->login($pengawas);
+
+        $own = $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/shift/store', ['project_id' => 80, 'timeIn' => '08:00:00', 'timeOut' => '17:00:00', 'type' => 'reguler']);
+        $this->assertSame(200, $own->status());
+
+        $foreign = $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/shift/store', ['project_id' => 81, 'timeIn' => '08:00:00', 'timeOut' => '17:00:00', 'type' => 'reguler']);
+        $this->assertSame(403, $foreign->status());
+        $this->assertSame(0, \DB::table('shift_have_projects')->where('project_id', 81)->count());
+    }
+
+    /** user_admin TAK boleh ubah/hapus shift milik project divisi lain. */
+    public function test_user_admin_cannot_touch_foreign_shift()
+    {
+        $this->seedRoles();
+        $admin = $this->makeUser('admin@test', 'admin');
+        $pengawas = $this->makeUser('peng1@test', 'user_admin', 1);
+        $this->makeProject(90, 2); // divisi lain
+
+        // admin bikin shift di project divisi 2
+        $adminTok = auth()->login($admin);
+        $created = $this->withHeader('Authorization', "Bearer $adminTok")
+            ->postJson('/api/shift/store', ['project_id' => 90, 'timeIn' => '08:00:00', 'timeOut' => '17:00:00', 'type' => 'reguler']);
+        $sid = $created->json('data.id');
+        $this->assertNotNull($sid);
+
+        // pengawas divisi 1 coba sentuh
+        $pengTok = auth()->login($pengawas);
+        $upd = $this->withHeader('Authorization', "Bearer $pengTok")
+            ->putJson("/api/shift/update/$sid", ['timeIn' => '09:00:00']);
+        $this->assertSame(403, $upd->status());
+
+        $del = $this->withHeader('Authorization', "Bearer $pengTok")
+            ->deleteJson("/api/shift/destroy/$sid");
+        $this->assertSame(403, $del->status());
+
+        // dan tak boleh nempelin user ke shift itu
+        $add = $this->withHeader('Authorization', "Bearer $pengTok")
+            ->postJson('/api/shift/add-user', ['shift_id' => $sid, 'user_ids' => [$pengawas->id], 'project_ids' => [90]]);
+        $this->assertSame(403, $add->status());
+    }
 }

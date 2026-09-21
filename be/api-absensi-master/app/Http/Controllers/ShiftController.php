@@ -57,6 +57,9 @@ class ShiftController extends Controller
     public function store(Request $request)
     {
         try {
+            if (! auth()->user()->canManageProject($request->project_id)) {
+                return $this->forbiddenDivision();
+            }
             DB::beginTransaction();
             //Query Add Shift
             $data = new Shift();
@@ -104,6 +107,9 @@ class ShiftController extends Controller
     public function addUserShift(Request $request)
     {
         try {
+            if (! auth()->user()->canManageShift($request->shift_id)) {
+                return $this->forbiddenDivision();
+            }
             $user_ids = $request->user_ids;
             $project_ids = $request->project_ids;
             $data = [];
@@ -154,6 +160,9 @@ class ShiftController extends Controller
         try {
             $relation_id = $request->relation_id;
             $data = ShiftHaveUser::findOrFail($relation_id);
+            if (! auth()->user()->canManageShift($data->shift_id)) {
+                return $this->forbiddenDivision();
+            }
             $data->delete();
 
             return Json::response($data);
@@ -221,6 +230,9 @@ class ShiftController extends Controller
     {
         try {
 
+            if (! auth()->user()->canManageShift($id)) {
+                return $this->forbiddenDivision();
+            }
             DB::beginTransaction();
 
             $data = Shift::findOrFail($id);
@@ -260,6 +272,9 @@ class ShiftController extends Controller
     public function destroy($id)
     {
         try {
+            if (! auth()->user()->canManageShift($id)) {
+                return $this->forbiddenDivision();
+            }
             $shift = Shift::findOrFail($id);
             $shift->project()->delete();
             $shift->userShift()->delete();

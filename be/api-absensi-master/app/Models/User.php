@@ -136,6 +136,41 @@ class User extends Authenticatable implements JWTSubject
         return $this->canManageDivision($divisionId);
     }
 
+    /**
+     * Boleh menulis kalau SEMUA project ini ada di divisinya (konservatif —
+     * satu project asing pun langsung tolak). Daftar kosong → tolak (kecuali
+     * full admin), supaya operasi tanpa scope jelas tak lolos.
+     */
+    public function canManageProjects(array $projectIds): bool
+    {
+        if ($this->isFullAdmin()) {
+            return true;
+        }
+        if (empty($projectIds)) {
+            return false;
+        }
+        foreach ($projectIds as $pid) {
+            if (! $this->canManageProject($pid)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Boleh menulis sebuah shift? Shift → project(s) via shift_have_projects →
+     * divisi. Harus menguasai SEMUA project yang menempel pada shift itu.
+     */
+    public function canManageShift($shiftId): bool
+    {
+        if ($this->isFullAdmin()) {
+            return true;
+        }
+        $projectIds = \App\Models\ShiftHaveProject::where('shift_id', $shiftId)
+            ->pluck('project_id')->all();
+        return $this->canManageProjects($projectIds);
+    }
+
     public function scopeWhereDivisions($query, $divisionIds)
     {
         if ($query && $divisionIds) {

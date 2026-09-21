@@ -19,7 +19,7 @@ Severity + remediation status. Each row links to its tracking issue.
 | 8 | Medium | reCAPTCHA not enforced server-side + login 500 on missing token | ✅ Fixed (500 + toggle) | #29 |
 | 9 | Medium | Login user enumeration | ✅ Fixed | #30 |
 | 10 | Medium | Error envelopes return HTTP 200; unauth `auth:api` → 500 not 401 | 🟡 Partial | #31 |
-| 11 | Medium | Horizontal escalation: `user_admin` can write across any division | 🟢 Fixed (project/devision/progres + assignments) | #32 |
+| 11 | Medium | Horizontal escalation: `user_admin` can write across any division | 🟢 Fixed (all writes; reads pending) | #32 |
 
 ## Fixes applied in this branch
 
@@ -116,6 +116,20 @@ is deliberately **not** done here to avoid breaking the client.
   pivot + bulk `project_ids` + `addUserShift`/`deleteShiftUser`) and attendance
   read-scoping — both need their own careful pass.
 
+**Fase 8d — extend #32 to shift (last write surface)**
+- A Shift links to its project(s) via the `shift_have_projects` pivot, so two new
+  reusable helpers: `User::canManageProjects(array)` (must own *every* project —
+  conservative: one foreign project denies) and `User::canManageShift($id)`
+  (resolves the shift's projects through the pivot, then delegates).
+- Gated all five write ops: `store` (on `project_id`), `update`/`destroy`/
+  `addUserShift` (on the shift, resolved via pivot), `deleteShiftUser` (resolves
+  the `ShiftHaveUser` row → shift → projects). Note the dead `$project_ids` bulk
+  block in `store`/`update` (local var never set) was left as-is — out of scope.
+- Tests in `Fase7Test` (own-project shift store ok / foreign 403, foreign shift
+  update+destroy+add-user 403).
+- **All #32 *write* paths are now scoped.** Remaining: attendance **read**
+  list-scoping — a separate confidentiality fix (filter queries, not a 403 gate).
+
 ## Verification
 
 - Backend suite green: `php artisan test` (all feature tests, incl. `RoleGateTest`,
@@ -134,7 +148,8 @@ is deliberately **not** done here to avoid breaking the client.
 - [x] Horizontal ownership: project write ops scoped to the actor's division (#32).
 - [x] #32 scoping on devision update/destroy + user-division assign.
 - [x] #32 scoping on progres CRUD + user-project assign (project-keyed).
-- [ ] Extend #32 to shift (pivot/bulk) + attendance read-scoping.
+- [x] #32 scoping on shift CRUD + add/delete-user (pivot-resolved). All writes done.
+- [ ] Attendance read-scoping (confidentiality: filter list queries by division).
 - [ ] The production DB dump containing employee PII must never be committed or shared.
 
 ## Reporting
