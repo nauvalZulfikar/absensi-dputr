@@ -1,0 +1,28 @@
+# --- secrets & data (JANGAN pernah di-commit) ---
+*.sql
+*.sqlite
+*.sqlite3
+.env
+.env.local
+.env.*.local
+
+# --- PHP / Laravel ---
+/be/**/vendor/
+/be/**/storage/*.key
+/be/**/storage/framework/cache/*
+/be/**/storage/framework/sessions/*
+/be/**/storage/framework/views/*
+/be/**/storage/logs/*
+/be/**/public/media/*
+/be/**/bootstrap/cache/*.php
+
+# --- Node / Vite ---
+node_modules/
+/fe/**/dist/
+/fe/**/.vite/
+
+# --- OS / editor ---
+.DS_Store
+*.log
+.idea/
+.vscode/

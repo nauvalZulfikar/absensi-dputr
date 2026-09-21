@@ -1,0 +1,172 @@
+<template>
+	<div :class="this.$store.themeSettingsStore.semidark ? 'dark' : ''">
+		<div :class="`sidebar-wrapper bg-white dark:bg-slate-800 ${sidebarIsBordered} ${siebarIsCollaps} ${sideBarIsHovered}`"
+			@mouseenter="this.$store.themeSettingsStore.isMouseHovered = true"
+			@mouseleave="this.$store.themeSettingsStore.isMouseHovered = false">
+			<div :class="`
+					logo-wrapper ${siebarIsCollaps} ${isLogoWrapperWhen} ${themeSkinIsHovered ? 'logo-hovered' : ''
+				}
+				`">
+				<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="layer"
+					x="0px" width="90" y="0px" viewBox="0 0 652 652" style="enable-background: new 0 0 652 652"
+					xml:space="preserve">
+					<path class="st0"
+						d="M319.5,264.6l38.1,0.3c-13.1,9.3-12.3,24.7-4,37.1c2.6,3.8,5.7,7.6,8.8,11.5c10.4,12.6,21.8,21.2,30.5,33.3  c11.2,15.6,15.7,32.8,8.1,51.9c-3.9,9.9-10.9,18.1-20.2,22.3c-7,3.2-15.1,4.3-23.4,4.3l-43.9-0.3l0.2-33.9l42.6,0.3h0.1l0,0  c7.4,0,13.5-6,13.6-13.5c0-6.5-5.1-11-8.9-15.5c-9.7-11.2-20-22.7-25.4-28.5C316.2,313.4,310.9,290.1,319.5,264.6 M535.2,378  l0.8-111.9l25.1,0.2l-0.1,16.6c8.8-10.4,17.6-14.4,31-13.9c7.2,0,18.6,4.9,24.2,11.8c5.4,7,9.4,12.9,9.3,25.7l-0.5,72.1l-27.4-0.2  l0.4-62.7c0-3.7,0.1-7.6-0.5-11.4c-0.4-2.9-2-6.1-4.5-8.7c-6.9-7.6-19.9-7.4-26.3,0.8c-3.5,4.4-3.8,8.7-3.9,19.7l-0.4,62L535.2,378z   M438.3,325.2l49.8-29.6c-2.2-2.4-4.7-4.2-7.7-5.5c-3.1-1.2-6.5-1.8-10.2-1.9c-9.1-0.1-16.6,2.9-22.7,9c-6.1,6.1-9.2,13.8-9.2,23.1  c0,1.3,0,2.3,0.1,2.9C438.2,324.1,438.2,324.7,438.3,325.2 M516.5,363.8c-7.5,4.8-15.1,8.3-22.7,10.6c-7.7,2.4-15.7,3.5-23.9,3.5  c-8.1-0.1-15.6-1.5-22.6-4.2c-7-2.8-13.2-6.8-18.8-12.1c-5.6-5.4-9.9-11.5-12.8-18.4c-2.9-6.8-4.4-14.1-4.3-21.8  c0.1-7.8,1.6-15.1,4.5-21.8c2.9-6.7,7.3-12.7,13.1-18.1c5.7-5.4,11.9-9.4,18.7-12c6.8-2.6,14.5-3.9,23-3.8  c11.5,0.1,21.7,2.9,30.7,8.4c9,5.5,16.5,13.6,22.3,24.2l-76.4,46c3.3,3,6.9,5.3,11,6.9c4,1.6,8.5,2.3,13.3,2.4  c4.9,0,10.1-0.9,15.6-2.9c5.5-1.9,11.7-5.1,18.7-9.3L516.5,363.8z M84.4,330.5l39.9,0.3l-19.7-43L84.4,330.5z M134.3,352.5  l-60.1-0.4l-10.7,22.6l-38-0.3l53-111.5l34.3,0.2l18.6,0.1l51.4,112.3l-38-0.3L134.3,352.5z" />
+					<path class="st1"
+						d="M221.4,327.8c1.1,3.1,2.7,6,4.8,8.4c4.7,5.4,11.5,8.8,19.2,8.9c14.1,0.1,25.7-11.3,25.8-25.4  c0.1-14.1-11.3-25.6-25.4-25.7c-4.6,0-8.9,1.2-12.7,3.3l0.2-32.8c4.2-0.9,8.5-1.4,12.7-1.4c31.1,0.2,56.3,25.7,56.1,56.8  c-0.2,31.1-25.7,56.3-56.8,56.1c-25.7-0.2-47.4-17.7-54-41.3c-2.2-7.7-2.1-15-2-23l0.1-9.1l0.5-76.3l30.9,0.2  c-0.2,28.7-0.4,57.3-0.6,86C220,317.7,219.6,322.7,221.4,327.8" />
+				</svg>
+				<span class="cursor-pointer text-slate-900 dark:text-white text-2xl" v-if="isSidebarOpenOrMouseHovered"
+					@click="
+						this.$store.themeSettingsStore.sidebarCollasp =
+						!this.$store.themeSettingsStore.sidebarCollasp
+						">
+					<div class="h-4 w-4 border-[1.5px] border-slate-900 dark:border-slate-700 rounded-full transition-all duration-150"
+						:class="this.$store.themeSettingsStore.sidebarCollasp
+								? ''
+								: 'ring-2 ring-inset ring-offset-4 ring-black-900 dark:ring-slate-400 bg-slate-900 dark:bg-slate-400 dark:ring-offset-slate-700'
+							"></div>
+				</span>
+			</div>
+			<div class="h-[60px] absolute top-[80px] nav-shadow z-[1] w-full transition-all duration-200 pointer-events-none"
+				:class="[shadowbase ? ' opacity-100' : ' opacity-0']"></div>
+
+			<SimpleBar class="sidebar-menu px-4 h-[calc(100%-80px)]" @created="(instance) => {
+					simplebarInstance = instance;
+				}
+				">
+				<Navmenu :items="menuItems" />
+			</SimpleBar>
+		</div>
+	</div>
+</template>
+<script>
+// import { Icon } from "@iconify/vue";
+import { defineComponent } from 'vue';
+import { menuItems } from '@/constant/static';
+import Navmenu from './Navmenu';
+import { gsap } from 'gsap';
+import { SimpleBar } from 'simplebar-vue3';
+import { ref, onMounted } from 'vue';
+
+export default defineComponent({
+	components: {
+		// Icon,
+		Navmenu,
+		SimpleBar,
+	},
+	data() {
+		return {
+			menuItems,
+			openClass: 'w-[248px]',
+			closeClass: 'w-[72px] close_sidebar',
+		};
+	},
+
+	computed: {
+		sidebarIsCollasp() {
+			return this.$store.themeSettingsStore.sidebarCollasp;
+		},
+		themeSkinIsBordered() {
+			return this.$store.themeSettingsStore.skin === 'bordered';
+		},
+		siebarIsCollaps() {
+			return this.sidebarIsCollasp ? this.closeClass : this.openClass;
+		},
+		themeSkinIsHovered() {
+			return this.$store.themeSettingsStore.isMouseHovered;
+		},
+		borderedClass() {
+			return 'border-r border-gray-5002 dark:border-slate-700';
+		},
+		sidebarIsBordered() {
+			const isBordered = this.themeSkinIsBordered;
+			const borderedClass = this.borderedClass;
+
+			return isBordered ? borderedClass : 'shadow-base';
+		},
+		sideBarIsHovered() {
+			return this.themeSkinIsHovered ? 'sidebar-hovered' : '';
+		},
+		isSidebarOpenOrMouseHovered() {
+			return !this.sidebarIsCollasp || this.themeSkinIsHovered;
+		},
+		isSidebarCollapsedAndNotHovered() {
+			return this.sidebarIsCollasp && !this.themeSkinIsHovered;
+		},
+		isLogoWrapperWhen() {
+			return this.themeSkinIsBordered
+				? `border-b ${this.borderedClass}`
+				: ' border-none';
+		},
+	},
+
+	setup() {
+		const shadowbase = ref(false);
+		const simplebarInstance = ref(null);
+		onMounted(() => {
+			simplebarInstance.value
+				.getScrollElement()
+				.addEventListener('scroll', () => {
+					if (
+						simplebarInstance.value.getScrollElement().scrollTop >
+						50
+					) {
+						simplebarInstance.value
+							.getScrollElement()
+							.classList.add('scroll');
+						shadowbase.value = true;
+					} else {
+						simplebarInstance.value
+							.getScrollElement()
+							.classList.remove('scroll');
+						shadowbase.value = false;
+					}
+				});
+		});
+
+		return {
+			simplebarInstance,
+			shadowbase,
+		};
+	},
+});
+</script>
+<style lang="scss">
+.sidebar-wrapper {
+	@apply fixed ltr:left-0 rtl:right-0 top-0 h-screen z-[999];
+	transition: width 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+	will-change: width;
+
+	.logo-wrapper {
+		@apply logo-segment h-[80px] flex justify-between items-center bg-white dark:bg-slate-800 z-[9] py-6 sticky top-0 px-4;
+	}
+}
+
+.nav-shadow {
+	background: linear-gradient(rgb(255, 255, 255) 5%,
+			rgba(255, 255, 255, 75%) 45%,
+			rgba(255, 255, 255, 20%) 80%,
+			transparent);
+}
+
+.dark {
+	.nav-shadow {
+		background: linear-gradient(rgba(#1e293b, 100%) 5%,
+				rgba(#1e293b, 75%) 45%,
+				rgba(#1e293b, 20%) 80%,
+				transparent);
+	}
+}
+
+.sidebar-wrapper.sidebar-hovered {
+	width: 248px !important;
+}
+
+.logo-segment.logo-hovered {
+	width: 248px !important;
+}
+
+.ring-active {
+	@apply ring-2 ring-inset ring-offset-4 ring-black-900 dark:ring-slate-400 bg-slate-900 dark:bg-slate-400 dark:ring-offset-slate-700;
+}
+</style>

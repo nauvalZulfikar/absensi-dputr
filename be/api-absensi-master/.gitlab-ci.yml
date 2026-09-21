@@ -1,0 +1,50 @@
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  # Definisi variabel yang diperlukan, sesuaikan dengan proyek Laravel Anda
+  DB_HOST: "your_db_host"
+  DB_DATABASE: "your_db_name"
+  DB_USERNAME: "your_db_username"
+  DB_PASSWORD: "your_db_password"
+  ARTISAN_KEY: "your_artisan_key"
+  DEPLOY_USER: "your_deploy_user"
+  DEPLOY_HOST: "your_deploy_host"
+
+image: "php:8.0.30"  # Pilih versi PHP sesuai kebutuhan proyek Laravel Anda
+
+cache:
+  paths:
+    - vendor/
+
+before_script:
+  - apt-get update -yqq
+  - apt-get install -yqq git
+  - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  - composer install --prefer-dist --no-ansi --no-interaction --no-progress --optimize-autoloader
+
+build_laravel:
+  stage: build
+  script:
+    - cp .env.example .env
+    - php artisan key:generate
+    - php artisan config:cache
+    - php artisan route:cache
+
+test_laravel:
+  stage: test
+  script:
+    - php artisan test
+
+deploy_laravel:
+  stage: deploy
+  script:
+    - apt-get install -yqq openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$SECRET_KEY" | base64 -d > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - rsync -avz --exclude '.env' --exclude 'vendor/' --exclude 'node_modules/' --exclude '.git/' $CI_PROJECT_DIR/ $DEPLOY_USER@$DEPLOY_HOST:/path/to/your/laravel/app
+  only:
+    - master
